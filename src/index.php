@@ -2,14 +2,48 @@
 $server = 'db';
 $username = 'root';
 $password = 'rootpassword';
-//The name of the schema/database we created earlier in Adminer
-//If this schema/database does not exist you will get an error!
 $schema = 'StudentRecord';
+
+// Temp Code to get DB running for testing
+$pdo = new PDO(
+    'mysql:host=' . $server,
+    $username,
+    $password,
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+$pdo->query("CREATE DATABASE IF NOT EXISTS `$schema`");
+
 $pdo = new PDO(
     'mysql:dbname=' . $schema . ';host=' . $server,
     $username,
     $password,
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+$pdo->query(
+    "CREATE TABLE IF NOT EXISTS Students (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        Name VARCHAR(255) NOT NULL,
+        Course VARCHAR(255) NOT NULL,
+        Subjects JSON NOT NULL,
+        `Year of Study` INT NOT NULL
+    )"
+);
+
+
+$pdo->query(
+    "CREATE DATABASE IF NOT EXISTS $schema"
+);
+
+$pdo->query(
+    "CREATE TABLE IF NOT EXISTS Students (
+        ID INT AUTO_INCREMENT PRIMARY KEY,
+        Name VARCHAR(255) NOT NULL,
+        Course VARCHAR(255) NOT NULL,
+        Subjects JSON NOT NULL,
+        `Year of Study` INT NOT NULL
+    )"
 );
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -21,14 +55,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $subject4 = $_POST['student-subject-4'] ?? '';
     $year = (int) $_POST['student-year-of-study'] ?? 0;
 
-    // Simple grade generator
     function randomGrade()
     {
         $grades = ['A', 'B', 'C', 'D', 'E', 'F'];
         return $grades[array_rand($grades)];
     }
 
-    // Create subjects JSON
     $subjects = json_encode([
         $subject1 => randomGrade(),
         $subject2 => randomGrade(),
@@ -36,11 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $subject4 => randomGrade(),
     ]);
 
-    // Insert into the DB
     $stmt = $pdo->prepare("INSERT INTO Students (Name, Course, Subjects, `Year of Study`) VALUES (?, ?, ?, ?)");
     $stmt->execute([$name, $course, $subjects, $year]);
 
-    // Optional: Redirect to prevent resubmission on refresh
     header("Location: index.php?registered=1");
     exit;
 }
@@ -52,7 +82,6 @@ try {
     $name = $_GET['query-student-name'] ?? '';
 
     if ($name) {
-        // Fetch the student by name
         $stmt = $pdo->prepare("SELECT Name, Course, Subjects, `Year of Study` FROM Students WHERE Name = ?");
         $stmt->execute([$name]);
         $student = $stmt->fetch(PDO::FETCH_ASSOC);
